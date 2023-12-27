@@ -1,0 +1,17 @@
+name = "SimpleEuler"
+uuid = "3fc8e3da-cadb-41e4-bead-9cdbddce41c5"
+authors = ["Brad Carman <bradleygcarman@outlook.com>"]
+version = "0.1.0"
+
+[deps]
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
+FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
+
+[extras]
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "OrdinaryDiffEq"]
