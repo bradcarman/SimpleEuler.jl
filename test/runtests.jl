@@ -8,6 +8,7 @@ d=100
 k=1000
 F = 100
 autodiff=true
+always_new=true
 
 function f0(du,u,p,t)
     F, k, d = p
@@ -52,15 +53,15 @@ prob1 = ODEProblem(fmm1, [0.0, F/d], (0.0, 10), [F, k, d])
 prob2 = ODEProblem(fmm2, [0.0, F/d, 0.0], (0.0, 10), [F, k, d])
 prob3 = ODEProblem(fmm3, [0.0, F/d, 0.0, 0.0], (0.0, 10), [F, k, d])
 
-ref0 = solve(prob0, ImplicitEuler(;autodiff); abstol, dt, adaptive=false, initializealg=NoInit())
-ref1 = solve(prob1, ImplicitEuler(;autodiff); abstol, dt, adaptive=false, initializealg=NoInit())
-ref2 = solve(prob2, ImplicitEuler(;autodiff); abstol, dt, adaptive=false, initializealg=NoInit()) #always fails
-ref3 = solve(prob3, ImplicitEuler(;autodiff); abstol, dt, adaptive=false, initializealg=NoInit()) #always fails
+ref0 = solve(prob0, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new)); abstol, dt, adaptive=false, initializealg=NoInit())
+ref1 = solve(prob1, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new)); abstol, dt, adaptive=false, initializealg=NoInit())
+ref2 = solve(prob2, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new, check_div=false)); abstol, dt, adaptive=false, initializealg=NoInit()) #always fails
+ref3 = solve(prob3, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new, check_div=false)); abstol, dt, adaptive=false, initializealg=NoInit()) #always fails
 
-sol0 = solve(prob0, BackwardEuler(;autodiff); abstol, dt, adaptive=false)
-sol1 = solve(prob1, BackwardEuler(;autodiff); abstol, dt, adaptive=false)
-sol2 = solve(prob2, BackwardEuler(;autodiff); abstol, dt, adaptive=false)
-sol3 = solve(prob3, BackwardEuler(;autodiff); abstol, dt, adaptive=false)
+sol0 = solve(prob0, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
+sol1 = solve(prob1, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
+sol2 = solve(prob2, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
+sol3 = solve(prob3, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
 
 #=
 using Plots
@@ -75,8 +76,8 @@ ddsol1 = [0; diff(sol1[2,:])]./dt
 
 plot(ref0.t, ddref0; ylims=(-4,4))
 plot!(ref1.t, ddref1)
-# plot!(ref2; idxs=3)
-# plot!(ref3; idxs=3)
+plot!(ref2; idxs=3)
+plot!(ref3; idxs=3)
 
 plot!(sol0.t, ddsol0)
 plot!(sol1.t, ddsol1)

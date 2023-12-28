@@ -11,6 +11,7 @@ export BackwardEuler
     max_iter::Int=100
     order::Int=1
     autodiff::Bool=true
+    always_new::Bool=true
 end
 
 DiffEqBase.isadaptive(::BackwardEuler) = false
@@ -51,7 +52,7 @@ function DiffEqBase.solve(prob::DiffEqBase.AbstractODEProblem{uType,tType,isinpl
 
     @unpack u0, p, f, tspan = prob
     @unpack f, jac, mass_matrix = f
-    @unpack relax, max_iter, order = alg
+    @unpack relax, max_iter, order, always_new = alg
 
     if isnothing(jac)
         jac = alg.autodiff
@@ -84,7 +85,10 @@ function DiffEqBase.solve(prob::DiffEqBase.AbstractODEProblem{uType,tType,isinpl
 
         for j = 1:max_iter
 
-            get_jacobian!(J, jac, f, u, t, p)
+            if always_new | (j == 1)
+                get_jacobian!(J, jac, f, u, t, p)
+            end
+
             J_ = J .- mass_matrix ./ dt
             f(du, u, p, t)
             du_ = du .- mass_matrix * get_derivative(u, us, dt, Val(order))
