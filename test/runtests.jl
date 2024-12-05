@@ -1,6 +1,7 @@
 using SimpleEuler
 using Test
 using OrdinaryDiffEq
+using DiffEqBase
 
 dt = 1e-4
 abstol = 1e-3
@@ -48,20 +49,25 @@ fmm1 = ODEFunction(f1; mass_matrix=[1 0;0 0])
 fmm2 = ODEFunction(f2; mass_matrix=[1 0 0;0 1 0;0 0 0])
 fmm3 = ODEFunction(f3; mass_matrix=[1 0 0 0;0 1 0 0;0 0 1 0;0 0 0 0])
 
-prob0 = ODEProblem(fmm0, [0.0], (0.0, 10), [F, k, d])
-prob1 = ODEProblem(fmm1, [0.0, F/d], (0.0, 10), [F, k, d])
-prob2 = ODEProblem(fmm2, [0.0, F/d, 0.0], (0.0, 10), [F, k, d])
-prob3 = ODEProblem(fmm3, [0.0, F/d, 0.0, 0.0], (0.0, 10), [F, k, d])
+prob0 = ODEProblem(fmm0, [0.0], (0.0, dt*1000), [F, k, d])
+prob1 = ODEProblem(fmm1, [0.0, F/d], (0.0, dt*1000), [F, k, d])
+prob2 = ODEProblem(fmm2, [0.0, F/d, 0.0], (0.0, dt*1000), [F, k, d])
+prob3 = ODEProblem(fmm3, [0.0, F/d, 0.0, 0.0], (0.0, dt*1000), [F, k, d])
 
 ref0 = solve(prob0, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new)); abstol, dt, adaptive=false, initializealg=NoInit())
 ref1 = solve(prob1, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new)); abstol, dt, adaptive=false, initializealg=NoInit())
-ref2 = solve(prob2, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new, check_div=false)); abstol, dt, adaptive=false, initializealg=NoInit()) #always fails
-ref3 = solve(prob3, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new, check_div=false)); abstol, dt, adaptive=false, initializealg=NoInit()) #always fails
+ref2 = solve(prob2, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new, check_div=false)); abstol, dt, adaptive=false, initializealg=NoInit()) 
+ref3 = solve(prob3, ImplicitEuler(;autodiff, nlsolve=NLNewton(;always_new, check_div=false)); abstol, dt, adaptive=false, initializealg=NoInit())
 
 sol0 = solve(prob0, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
 sol1 = solve(prob1, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
 sol2 = solve(prob2, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
 sol3 = solve(prob3, BackwardEuler(;autodiff, always_new); abstol, dt, adaptive=false)
+
+@test sol0.retcode == ReturnCode.Default
+@test sol1.retcode == ReturnCode.Default
+@test sol2.retcode == ReturnCode.Default
+@test sol3.retcode == ReturnCode.Default
 
 #=
 using Plots

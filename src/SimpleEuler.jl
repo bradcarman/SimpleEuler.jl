@@ -7,11 +7,12 @@ using FiniteDiff
 export BackwardEuler
 
 @kwdef struct BackwardEuler <: DiffEqBase.AbstractODEAlgorithm
-    relax::Float64=1.0
-    max_iter::Int=100
-    order::Int=1
-    autodiff::Bool=true
-    always_new::Bool=true
+    relax=1.0
+    max_iter=100
+    order=1
+    autodiff=true
+    always_new=true
+    ζ=0.0
 end
 
 DiffEqBase.isadaptive(::BackwardEuler) = false
@@ -48,20 +49,30 @@ function get_derivative(u, us, dt, order::Val{3})
     end
 end
 
-function DiffEqBase.solve(prob::DiffEqBase.AbstractODEProblem{uType,tType,isinplace}, alg::BackwardEuler; dt=(prob.tspan[2] - prob.tspan[1]) / 100, tstops=tType[], abstol=1e-7, kwargs...) where {uType,tType,isinplace} 
+function get_derivative(u, us, dt, order::Val{4})
+    if length(us) > 3
+        return (25*u .- (4*12)*us[end] .+ (3*12)*us[end-1] .- (4*12/3)*us[end-2]) .+ (12/4)*us[end-3] ./ (12*dt)
+    else
+        return get_derivative(u, us, dt, Val(3))
+    end
+end
+
+
+
+
+
+function DiffEqBase.solve(prob::DiffEqBase.AbstractODEProblem{uType,tType,isinplace}, alg::BackwardEuler; dt=(prob.tspan[2] - prob.tspan[1]) / 100, tstops=tType[], abstol=1e-7, reltol=1e-7, kwargs...) where {uType,tType,isinplace} 
 
     @unpack u0, p, f, tspan = prob
     @unpack f, jac, mass_matrix = f
-    @unpack relax, max_iter, order, always_new = alg
+    @unpack relax, max_iter, order, always_new, ζ = alg
 
     if isnothing(jac)
         jac = alg.autodiff
     end
 
     c = length(u0)
-    if c == 1
-        mass_matrix = mass_matrix*ones(c,c) #remove UniformScaling type
-    end
+    mass_matrix = mass_matrix*ones(c,c) #remove UniformScaling type
     z = du = du_ = rand(c)
     J = J_ = rand(c, c)
 
@@ -92,15 +103,26 @@ function DiffEqBase.solve(prob::DiffEqBase.AbstractODEProblem{uType,tType,isinpl
             J_ = J .- mass_matrix ./ dt
             f(du, u, p, t)
             du_ = du .- mass_matrix * get_derivative(u, us, dt, Val(order))
-            z .= J_ \ du_
+            try
+                z .= (J_ .+ ζ) \ (du_ .+ ζ)    
+            catch er
+                @warn "$er on i=$i"
+                break
+            end
+            
             u .-=  z .* relax
 
-            if DiffEqBase.norm(du_, Inf) <= abstol
+            # tmp = 
+            # DiffEqBase.calculate_residuals!(tmp, du, u, abstol, reltol, t)
+
+            tol = DiffEqBase.norm(du_, 2)
+            if tol <= abstol
+                # @show tol abstol
                 break
             end
 
             if j == max_iter
-                @warn "Newton iterations reached max_iter=$(max_iter)"
+                # @warn "Newton iterations reached max_iter=$(max_iter)"
             elseif any(isnan.(u))
                 @warn "Newton steps could not converge"
                 break
